@@ -1,6 +1,7 @@
 #ifndef _MATRIX_HPP_
 #define _MATRIX_HPP_
 
+
 #include <iostream>
 #include <cstring>
 #include <cassert>
@@ -8,12 +9,20 @@
  *
  */
 template <typename T>
+class Matrix2d;
+template <typename T> 
+void Matrix2dMultiply(const Matrix2d<T> &op1,const Matrix2d<T> &op2, Matrix2d<T> &Result);
+template <typename T> 
+std::ostream& operator << (std::ostream &OutStream, const Matrix2d<T> &MatrixObj);
+
+template <typename T>
 class Matrix2d
 {
 public:
 	Matrix2d();
 	Matrix2d(int iColumn, int iRow);
 	Matrix2d(int iColumn, int iRow, const T *pData);
+	//Matrix2d(const Matrix2d<T>& m2d);
 	virtual ~Matrix2d();
 	virtual inline T * getMatrix2dData(){ return const_cast<T *>(this->m_pData); };
 	virtual inline int getMatrix2dRow(){ return this->m_iRow; };
@@ -24,10 +33,12 @@ public:
 	virtual Matrix2d<T>& operator +(Matrix2d<T> &op);
 	virtual Matrix2d<T>& operator -(Matrix2d<T> &op);
 	virtual Matrix2d<T>& operator =(Matrix2d<T> &op);
-	virtual Matrix2d<T>& operator *(Matrix2d<T> &op);
+	virtual Matrix2d<T>* operator *(Matrix2d<T> &op);
 	virtual Matrix2d<T>& operator *(const T &op);
 	virtual Matrix2d<T>& operator ~();
- 	template <typename T> friend std::ostream& operator <<(std::ostream &OutStream, const Matrix2d<T> &MatrixObj);
+
+	friend void Matrix2dMultiply<T>(const Matrix2d<T> &op1,const Matrix2d<T> &op2, Matrix2d<T> &Result);
+ 	friend std::ostream& operator << <T>(std::ostream &OutStream, const Matrix2d<T> &MatrixObj);
 private:
 	void initAttributes();
 
@@ -66,6 +77,18 @@ template <typename T> Matrix2d<T>::Matrix2d(int iColumn, int iRow, const T *pDat
 	this->m_pData = new T[this->m_iColumn*this->m_iRow];
 	memcpy(const_cast<T *>(this->m_pData), pData, sizeof(T)*this->m_iColumn*this->m_iRow);
 }
+/*
+template <typename T> Matrix2d<T>::Matrix2d(const Matrix2d<T>& m2d)
+{
+	this->m_iRow = m2d.m_iRow;
+	this->m_iColumn = m2d.m_iColumn;
+	if(this->m_pData == NULL){
+
+		this->m_pData = new T[m2d.m_iRow*m2d.m_iColumn];
+	}
+	memcpy(const_cast<T *>(this->m_pData), m2d.m_pData, m2d.m_iRow*m2d.m_iColumn*sizeof(T));
+}
+*/
 template <typename T> Matrix2d<T>::~Matrix2d()
 {
 	if(this->m_pData){
@@ -106,10 +129,10 @@ template <typename T> Matrix2d<T>& Matrix2d<T>::operator =(Matrix2d<T> &op)
 	return (*this);
 }
 
-template <typename T> Matrix2d<T>& Matrix2d<T>::operator *(Matrix2d<T> &op)
+template <typename T> Matrix2d<T>* Matrix2d<T>::operator *(Matrix2d<T> &op)
 {
 	assert( this->m_iColumn == op.m_iRow);
-	Matrix2d<T> * pMatrix2dResult = new Matrix2d(op.m_iColumn, this->m_iRow);
+	Matrix2d<T> * pMatrix2dResult = new Matrix2d<T>(op.m_iColumn, this->m_iRow);
 	for(int i = 0, m = 0; i < pMatrix2dResult->m_iRow; i++, m++){
 		for(int j = 0; j < pMatrix2dResult->m_iColumn; j++){
 			for(int k = 0; k < this->m_iColumn; k++){
@@ -118,8 +141,10 @@ template <typename T> Matrix2d<T>& Matrix2d<T>::operator *(Matrix2d<T> &op)
 			}
 		}
 	}
-	return (*pMatrix2dResult);
+	return (pMatrix2dResult);
 }
+
+
 template <typename T> Matrix2d<T>& Matrix2d<T>::operator *(const T &op)
 {
 	for(int i = 0; i < this->m_iRow; i++){
@@ -161,4 +186,18 @@ template <typename T> std::ostream& operator << (std::ostream &OutStream, const 
 
 	return OutStream;
 }
+template <typename T> void Matrix2dMultiply(const Matrix2d<T>& op1, const Matrix2d<T>& op2, Matrix2d<T>& Result)
+{
+	assert( op1.m_iColumn == op2.m_iRow);
+	for(int i = 0, m = 0; i < Result.m_iRow; i++, m++){
+		for(int j = 0; j < Result.m_iColumn; j++){
+			for(int k = 0; k < op1.m_iColumn; k++){
+				*(const_cast<T*>(Result.m_pData) + i*Result.m_iColumn + j) += (*(op1.m_pData + i*op1.m_iColumn + k)) \
+					* (*(op2.m_pData + k*op2.m_iColumn + j));
+			}
+		}
+	}
+	return;
+}
+
 #endif /*_MATRIX_HPP_*/
